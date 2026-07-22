@@ -57,6 +57,10 @@ Actively developed. Recent/upcoming work includes foreign card translation, deck
 
 <img width="1444" height="815" alt="image" src="https://github.com/user-attachments/assets/f855664c-da6e-4b59-8252-a6b7ce6bada2" />
 
+<img width="1890" height="741" alt="image" src="https://github.com/user-attachments/assets/571e8812-862a-43aa-af95-38938b48cd7f" />
+
+<img width="1274" height="768" alt="image" src="https://github.com/user-attachments/assets/b9c0e570-a705-4ef1-a03d-6f9303bd4ce4" />
+
 
 ---
 
