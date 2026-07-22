@@ -55,7 +55,8 @@ Actively developed. Recent/upcoming work includes foreign card translation, deck
 
 ## Screenshots
 
-*(add a screenshot or two of the Market page and Portfolio dashboard here — recruiters skim, and a picture goes a long way)*
+<img width="1444" height="815" alt="image" src="https://github.com/user-attachments/assets/f855664c-da6e-4b59-8252-a6b7ce6bada2" />
+
 
 ---
 
