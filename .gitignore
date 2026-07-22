@@ -1,0 +1,23 @@
+.env
+venv/
+__pycache__/
+*.pyc
+node_modules/
+frontend/dist/
+frontend/node_modules/
+
+# logs
+*.log
+*.log.*.gz
+
+# backups
+*.backup
+*.backup-before-bundles
+*.justtcg-backup
+
+# reports/generated
+broken_images_report.txt
+
+# misc
+=
+backups/
