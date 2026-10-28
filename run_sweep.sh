@@ -1,6 +1,6 @@
 #!/bin/bash
 # Nightly market sweep — refreshes prices for the Movers page
-cd /home/bc_2xx/pokemarket || exit 1
+cd /path/to/buynder || exit 1
 source venv/bin/activate
 
 echo "=== Sweep started $(date) ==="

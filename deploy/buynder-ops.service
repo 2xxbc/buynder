@@ -1,0 +1,29 @@
+# buynder-ops.service: the read-only ops dashboard on port 5190 (LAN + Tailscale only).
+# Install:  sudo cp ~/pokemarket/deploy/buynder-ops.service /etc/systemd/system/
+#           sudo systemctl daemon-reload && sudo systemctl enable --now buynder-ops
+# Remove:   sudo systemctl disable --now buynder-ops && sudo rm /etc/systemd/system/buynder-ops.service
+
+[Unit]
+Description=Buynder ops dashboard (read-only, port 5190)
+After=network.target
+
+[Service]
+Type=simple
+User=youruser
+Group=youruser
+WorkingDirectory=/path/to/buynder/ops_dashboard
+# One worker is plenty for a TV and a voice assistant. The app itself refuses anything that isn't
+# the LAN (10.0.0.0/24), Tailscale (100.64.0.0/10) or this machine, and anything that came through Cloudflare.
+ExecStart=/path/to/buynder/venv/bin/gunicorn --bind 0.0.0.0:5190 --workers 1 --timeout 30 dashboard:app
+# Browser origins on this machine (localhost:8080) are built into dashboard.py. To allow others, such as a
+# Pi's page on the LAN, add them in a drop-in (sudo systemctl edit buynder-ops) so no IPs live in the repo:
+#   [Service]
+#   Environment=OPS_CORS_ORIGINS=http://a:8080,http://b:8080
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

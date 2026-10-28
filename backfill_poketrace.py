@@ -38,7 +38,7 @@ headers = {"X-API-Key": API_KEY}
 
 
 def call(path, params=None):
-    time.sleep(2.5)                                    
+    time.sleep(2.5)  # respect the 1-per-2s burst limit
     return requests.get(f"{BASE}{path}", headers=headers, params=params, timeout=15)
 
 
@@ -64,12 +64,12 @@ def find_poketrace_match(name, set_name, card_number):
     Search PokeTrace and pick the best match by set + card number.
     Returns the full card dict from PokeTrace, or None.
     """
-                                                                              
+    # Clean up the name for searching ("Pikachu ex - 276/217" -> "Pikachu ex")
     search_name = name.split(" - ")[0].strip()
     target_set = normalize_set_name(set_name)
     target_num = normalize_number(card_number)
 
-                                                            
+    # Search with name + number (PokeTrace likes that combo)
     query = f"{search_name} {target_num}" if target_num else search_name
     r = call("/cards", params={"search": query, "market": "US", "limit": 20})
     if not r.ok:
@@ -80,7 +80,7 @@ def find_poketrace_match(name, set_name, card_number):
     if not candidates:
         return None
 
-                          
+    # Score each candidate
     best = None
     best_score = -1
     for c in candidates:
@@ -100,7 +100,7 @@ def find_poketrace_match(name, set_name, card_number):
             best_score = score
             best = c
 
-    return best if best_score >= 5 else None                           
+    return best if best_score >= 5 else None  # require some confidence
 
 
 def fetch_full_history(poketrace_id):
@@ -138,7 +138,7 @@ def main():
     conn = mysql.connector.connect(**db_config)
     cur = conn.cursor(dictionary=True)
 
-                                                          
+    # Get all cards that don't already have PokeTrace data
     cur.execute("""
         SELECT id, name, set_name, card_number
         FROM products
@@ -167,7 +167,7 @@ def main():
         print(f"    Set:  {pt_set}")
         print(f"    Num:  {pt_num}")
 
-                                                                    
+        # Fetch the full card detail (cheap, gives us stats + image)
         r = call(f"/cards/{pt_id}")
         if not r.ok:
             print(f"  ✗ Detail fetch failed: {r.status_code}. Skipping.\n")

@@ -80,7 +80,7 @@ def merge_history(existing, new_points):
         date = pt.get("date")
         source = pt.get("source", "unknown")
         if date:
-            by_key[(date, source)] = pt                                                    
+            by_key[(date, source)] = pt  # new value wins on exact (date, source) duplicate
     return sorted(by_key.values(), key=lambda x: x["date"], reverse=True)
 
 def build_stats(card_detail):
@@ -143,7 +143,7 @@ def update_all_prices():
             stats = build_stats(detail)
             new_image = detail.get("image") or ""
 
-                                                                   
+            # Update the row — fill in image_url only if it's empty
             cur.execute(
                 """UPDATE products
                    SET poketrace_history = %s,
@@ -153,7 +153,7 @@ def update_all_prices():
                 (json.dumps(merged), json.dumps(stats), new_image, card["id"])
             )
 
-                                                                     
+            # Legacy: append current price to price_history table too
             if current_price:
                 cur.execute(
                     "INSERT INTO price_history (product_id, price) VALUES (%s, %s)",

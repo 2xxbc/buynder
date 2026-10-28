@@ -1,0 +1,83 @@
+# Caddyfile: how Caddy serves the built site (frontend/dist) on port 5180.
+# Cloudflare's tunnel already sends buyndermarket.com to localhost:5180, so nothing changes there.
+# Check it after edits:  caddy validate --config deploy/Caddyfile --adapter caddyfile
+
+{
+	# Turn off Caddy's admin API (it would listen on localhost:2019). We change config by restarting instead.
+	admin off
+	# Port 5180 is plain http behind the tunnel; Cloudflare does HTTPS. Don't try to get certificates.
+	auto_https off
+}
+
+:5180 {
+	# Serve files straight out of the repo's build folder (Caddy runs as youruser, so it can read it).
+	root * /path/to/buynder/frontend/dist
+
+	# Compress responses: zstd for browsers that support it, gzip for the rest.
+	encode zstd gzip
+
+	# The API, on the SAME address as the site: buyndermarket.com/api/me -> the Flask API's /me.
+	# Same address means the login cookie belongs to buyndermarket.com itself, so Safari's cross-site
+	# tracking rules can't drop it, and no CORS is needed. handle_path removes "/api" before passing it on.
+	# Cloudflare's headers (CF-Connecting-IP etc.) and the Host are passed through unchanged, so the API
+	# still sees the visitor's real IP and knows the request came through the tunnel.
+	# (api.buyndermarket.com keeps working too, for pages loaded before this change.)
+	handle_path /api/* {
+		reverse_proxy 127.0.0.1:5050
+	}
+
+	# Everything else is the website.
+	handle {
+		# React routes (/card/abc, /portfolio, ...) aren't real files: if the path isn't a file, send
+		# index.html and let react-router show the right page. Real 404s are handled by pages/NotFound.jsx.
+		try_files {path} /index.html
+		file_server
+	}
+
+	# Cache rules. Vite puts a content hash in every file name under /assets (index-BwgTACW4.js), so a
+	# changed file always gets a new name: browsers may keep those for a year.
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+
+	# Everything else, above all index.html, must be re-checked on every visit ("no-cache" = ask the server
+	# "changed?" first; an unchanged file costs a tiny 304 reply). index.html names the current asset files,
+	# so a stale copy would load last deploy's JavaScript. Note: Caddy runs `header` BEFORE `try_files`, so
+	# /card/abc is matched here by its original path, which is why this is "not /assets", not "/index.html".
+	# (/api/* is left alone: the API sets its own Cache-Control: no-store.)
+	@not_assets not path /assets/* /api/*
+	header @not_assets Cache-Control "no-cache"
+
+	header {
+		# Don't let the browser guess file types (stops a "picture" from being run as a script).
+		X-Content-Type-Options "nosniff"
+		# Other sites can't put buyndermarket.com in a frame (blocks clickjacking).
+		X-Frame-Options "DENY"
+		# When a visitor clicks a link to another site, send only "buyndermarket.com", never the full URL.
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# The Scanner may use the camera on this site; nothing may use the microphone or location.
+		Permissions-Policy "camera=(self), microphone=(), geolocation=()"
+
+		# Content-Security-Policy: a list of where the page may load things from. Anything else is blocked.
+		# It starts as Report-Only: the browser only prints a console warning for anything outside the list.
+		# After a few days with no warnings, rename the header to Content-Security-Policy to enforce it.
+		#   default-src 'self'                anything not listed below: only from this site
+		#   script-src 'self'                 JavaScript only from our own /assets files (no inline scripts)
+		#   style-src ... 'unsafe-inline'     our CSS + Google Fonts CSS; React's style={...} needs unsafe-inline
+		#   font-src                          the font files themselves come from fonts.gstatic.com
+		#   img-src                           card images (PokeTrace CDN + older TCGPlayer/pokemontcg.io saves),
+		#                                     data:/blob: for the Scanner's photo preview
+		#   connect-src                       where fetch() may go: this site (incl. /api), the old api. address,
+		#                                     localhost, plus {$DEV_CONNECT_SRC}: the LAN/Tailscale API addresses
+		#                                     for when the site is opened on a LAN address. Set it in a systemd
+		#                                     drop-in (sudo systemctl edit buynder-web), not in this file, e.g.
+		#                                     Environment="DEV_CONNECT_SRC=http://192.168.1.20:5050"
+		#                                     Unset, it's empty and only those LAN calls get reported.
+		#   frame-ancestors 'none'            same job as X-Frame-Options, modern version
+		#   base-uri / form-action 'self'     stop injected <base> or <form> tags from pointing elsewhere
+		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://cdn.poketrace.com https://images.pokemontcg.io https://tcgplayer-cdn.tcgplayer.com https://product-images.tcgplayer.com; connect-src 'self' https://api.buyndermarket.com http://localhost:5050 {$DEV_CONNECT_SRC}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+
+		# Don't advertise which web server this is.
+		-Server
+	}
+
+}

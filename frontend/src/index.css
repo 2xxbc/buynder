@@ -1,1 +1,111 @@
 @import "tailwindcss";
+
+/* ─────────────────────────────────────────────
+   Buynder design tokens — one dark theme ("Showroom"), since 2026-10-25
+   (the light "Binder" side was retired; same layouts, dark palette).
+   Every name here becomes a Tailwind class automatically,
+   e.g. --color-chalk → bg-chalk / text-chalk / border-chalk
+   ───────────────────────────────────────────── */
+@theme {
+  /* Fonts */
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Unbounded", "Manrope", ui-sans-serif, sans-serif;
+
+  /* Up/down on the paper price ticket only (it stays light, like paper) */
+  --color-up: #23794A;
+  --color-down: #C23A2E;
+
+  /* The palette (contrast checked: chalk 13.7:1, chalk-soft 6.0:1 on stage-raised) */
+  --color-stage: #1B1719;        /* page background */
+  --color-stage-raised: #262124; /* panels on the dark side */
+  --color-stage-line: #3A3337;   /* borders on the dark side */
+  --color-chalk: #F2EEE8;        /* text on dark */
+  --color-chalk-soft: #A69E99;   /* secondary text on dark */
+  --color-volt: #C6D85A;         /* showroom buttons only */
+  --color-volt-deep: #AFC23F;    /* volt hover */
+  --color-ticket: #EDEBE6;       /* paper price tag */
+  --color-up-bright: #6FD39A;    /* price up (on dark) */
+  --color-down-bright: #FF7A6B;  /* price down (on dark) */
+
+  /* Shapes */
+  --radius-panel: 28px;          /* big soft panels → rounded-panel */
+  --radius-chip: 10px;           /* small chips & inputs → rounded-chip */
+  --shadow-float: 0 18px 40px -18px rgb(23 21 15 / 0.35);
+  --shadow-glow: 0 30px 60px -24px rgb(0 0 0 / 0.75), 0 0 70px -12px rgb(198 216 90 / 0.35); /* hero card on the foil tile */
+}
+
+/* Holographic foil tile behind the showroom hero card → className="bg-foil" */
+@utility bg-foil {
+  background-color: var(--color-stage-raised);
+  background-image:
+    repeating-linear-gradient(135deg, rgb(255 255 255 / 0.045) 0 2px, transparent 2px 7px),
+    radial-gradient(60% 50% at 50% 45%, rgb(198 216 90 / 0.2), transparent 70%),
+    conic-gradient(from 200deg at 50% 50%,
+      rgb(111 211 154 / 0.26), rgb(120 150 230 / 0.26), rgb(214 140 196 / 0.24),
+      rgb(236 204 120 / 0.26), rgb(111 211 154 / 0.26));
+}
+
+/* Loading placeholder with a soft light sweep → className="shimmer" (static under reduced motion) */
+@keyframes shimmer-sweep {
+  from { background-position: 150% 0; }
+  to { background-position: -50% 0; }
+}
+@utility shimmer {
+  background-color: var(--color-stage-raised);
+  background-image: linear-gradient(100deg, transparent 30%, rgb(242 238 232 / 0.06) 50%, transparent 70%);
+  background-size: 200% 100%;
+  animation: shimmer-sweep 1.6s ease-in-out infinite;
+}
+
+/* Showroom clipped corners (top-left + bottom-right). Decorative blocks only —
+   it would also clip the focus ring on buttons/inputs. → className="clip-corner" */
+@utility clip-corner {
+  clip-path: polygon(28px 0, 100% 0, 100% calc(100% - 28px), calc(100% - 28px) 100%, 0 100%, 0 28px);
+}
+
+/* Page background → className="bg-showroom" */
+@utility bg-showroom {
+  background-color: var(--color-stage);
+  background-image:
+    radial-gradient(45% 35% at 12% 8%, rgb(42 75 79 / 0.55), transparent 70%),
+    radial-gradient(40% 35% at 85% 20%, rgb(107 74 42 / 0.45), transparent 70%);
+  background-attachment: fixed;
+}
+
+/* Frosted dark panel (cards, forms, stats) → className="glass". Solid enough that text contrast
+   doesn't depend on what's behind it: stage-raised at 92% over the dark page. */
+@utility glass {
+  background-color: rgb(38 33 36 / 0.92);
+  border: 1px solid var(--color-stage-line);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+@layer base {
+  /* The browser draws its own controls (select lists, date pickers, scrollbars) dark too */
+  :root { color-scheme: dark; }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-stage); /* no white flash while loading */
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Visible keyboard focus everywhere. The ring sits outside the element, so it takes the
+     page's text color (not the element's: a light pill has dark text) */
+  :focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+  }
+  .bg-showroom :focus-visible { outline-color: var(--color-chalk); }
+
+  /* Respect people who turn off animations in their OS settings */
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

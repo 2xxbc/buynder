@@ -1,0 +1,88 @@
+{
+  "_about": "Facts for the weekly PokeTrace data-issues draft (agents/ops_report.py, Mondays). Every number was copied from PokeTrace responses saved on 2026-10-24 (card detail + 60-point condition histories) and from scripts/check_sets.py / scripts/check_new_sets.py output. The 'X of Y cards' line comes from scripts/condition_order_check.json (scripts/check_condition_order.py) when it exists. The draft never calls PokeTrace and is never sent: it's attached to your Discord report for you to edit and send. Update this file when an issue is fixed or a new one is found.",
+  "data_date": "2026-10-24",
+  "stale_prices": [
+    {
+      "card": "Absol 96/95",
+      "set": "EX Team Magma vs Team Aqua",
+      "poketrace_id": "019bff77-befc-77ae-b883-8d659a5380bb",
+      "headline": "TCGplayer HEAVILY_PLAYED $179.99 is above NEAR_MINT $164.98, because the Near Mint price is stale (lastUpdated 2026-06-07).",
+      "evidence": [
+        "TCGplayer NEAR_MINT: avg $164.98, saleCount 18, lastUpdated 2026-06-07. The Near Mint history we saved (60 points, back to 2026-04-18) has no TCGplayer sale at all.",
+        "TCGplayer HEAVILY_PLAYED: avg $179.99, saleCount 12, lastUpdated 2026-10-24 (one TCGplayer sale, on 2026-10-15).",
+        "Meanwhile real Near Mint copies sold on eBay between 2026-08-09 and 2026-09-22 for $213.37 to $475 (5 copies at $475 on 2026-09-22). So the $164.98 Near Mint price is months out of date, not a market price."
+      ]
+    },
+    {
+      "card": "Infernape 173/167",
+      "set": "SV06: Twilight Masquerade",
+      "poketrace_id": "019bffb0-7845-751b-84c7-76e3739e67a9",
+      "headline": "eBay LIGHTLY_PLAYED $20.78 is above NEAR_MINT $15.31 (21 Lightly Played sales vs 494 Near Mint sales).",
+      "evidence": [
+        "eBay NEAR_MINT: avg $15.31, saleCount 494, lastUpdated 2026-10-22. eBay LIGHTLY_PLAYED: avg $20.78, saleCount 21, lastUpdated 2026-08-30.",
+        "Also, TCGplayer HEAVILY_PLAYED $10.46 is re-posted every day for 60 days (2026-08-26 to 2026-10-24) with saleCount 0 on every day, yet the card detail shows it with lastUpdated 2026-10-24 as if it were current."
+      ]
+    }
+  ],
+  "asks": [
+    "Flag prices that have no recent sales behind them, or leave them out, instead of carrying an old price forward as if it were current.",
+    "Expose the date of the last real sale for each condition and source, so we can tell a fresh price from a stale one.",
+    "Explain how Near Mint can be priced below played conditions in your data, and how saleCount (lifetime or recent?) and lastUpdated (last sale or last refresh?) are defined."
+  ],
+  "duplicate_sets": [
+    {
+      "slugs": [
+        "team-magma-vs-team-aqua",
+        "ex-team-magma-vs-team-aqua"
+      ],
+      "detail": "One set under two slugs, with its cards split between them: /v1/cards?set=team-magma-vs-team-aqua returned 3 cards, while ex-team-magma-vs-team-aqua returned 120+ (including Absol 96/95, whose own set.slug is ex-team-magma-vs-team-aqua)."
+    },
+    {
+      "slugs": [
+        "ruby-and-sapphire",
+        "ex-ruby-and-sapphire"
+      ],
+      "detail": "ex-ruby-and-sapphire (211 cards) lists the same cards as ruby-and-sapphire: all 20 cards on its first page have the same PokeTrace card IDs as cards under ruby-and-sapphire."
+    },
+    {
+      "slugs": [
+        "firered-and-leafgreen",
+        "ex-firered-and-leafgreen"
+      ],
+      "detail": "ex-firered-and-leafgreen (249 cards) lists the same cards as firered-and-leafgreen: all 20 cards on its first page have the same PokeTrace card IDs as cards under firered-and-leafgreen."
+    }
+  ],
+  "non_pokemon_sets": [
+    {
+      "slug": "the-worlds-strongest-warriors",
+      "name": "The World's Strongest Warriors",
+      "looks_like": "One Piece cards (e.g. Charlotte Pudding OP17-109, Yamato OP17-074)"
+    },
+    {
+      "slug": "the-hobbit",
+      "name": "The Hobbit",
+      "looks_like": "Magic: The Gathering products (e.g. Mountain 197, a land card, and a Play Booster Display)"
+    },
+    {
+      "slug": "reality-fracture",
+      "name": "Reality Fracture",
+      "looks_like": "non-Pokémon cards (e.g. Sphinx's Approach 41)"
+    },
+    {
+      "slug": "commander-reality-fracture",
+      "name": "Commander: Reality Fracture",
+      "looks_like": "a Magic: The Gathering Commander deck"
+    },
+    {
+      "slug": "vendetta",
+      "name": "Vendetta",
+      "looks_like": "non-Pokémon cards (e.g. Spiderling 097/166)"
+    },
+    {
+      "slug": "freedom-ascension",
+      "name": "Freedom Ascension",
+      "looks_like": "Gundam card game cards (e.g. Airframe Seizure GD05-111)"
+    }
+  ],
+  "pricing_lead": "Condition prices are out of order. Near Mint should be the highest, then Lightly Played, Moderately Played, Heavily Played and Damaged, but in your data lower conditions are often priced ABOVE Near Mint."
+}

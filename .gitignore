@@ -17,7 +17,20 @@ frontend/node_modules/
 
 # reports/generated
 broken_images_report.txt
+scripts/set_check.json
+scripts/new_sets_check.json
+scripts/condition_order_check.json
 
 # misc
 =
 backups/
+
+# sent to PokeTrace by hand, not part of the app
+broken_images.csv
+
+# copies of /etc/systemd units made by deploy/switch-to-caddy.sh
+deploy/backup/
+
+# agent run logs, status files and state (ops agents)
+data/
+cache/

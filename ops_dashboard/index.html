@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Buynder ops</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400..800&family=Unbounded:wght@500..700&display=swap" rel="stylesheet">
+<style>
+  /* Showroom palette (same values as frontend/src/index.css) */
+  :root {
+    --stage: #1B1719; --raised: #262124; --line: #3A3337; --chalk: #F2EEE8; --chalk-soft: #A69E99;
+    --volt: #C6D85A; --up: #6FD39A; --down: #FF7A6B; --warn: #F3DFA6; --run: #8FB8FF;
+    --display: "Unbounded", system-ui, sans-serif; --sans: "Manrope", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: radial-gradient(120% 80% at 10% 0%, #2a2326 0%, var(--stage) 55%) fixed, var(--stage);
+    color: var(--chalk); font-family: var(--sans); font-size: clamp(15px, 1.05vw, 22px);
+    display: flex; flex-direction: column; min-height: 100vh; padding: clamp(16px, 2.2vw, 44px); gap: clamp(14px, 1.6vw, 28px);
+  }
+  .num { font-variant-numeric: tabular-nums; }
+  body > * { min-width: 0; max-width: 100%; }            /* the wide ticker must never widen the page */
+  header { display: flex; align-items: center; gap: 1.2em; flex-wrap: wrap; }
+  h1 { font-family: var(--display); font-weight: 600; font-size: clamp(26px, 2.6vw, 54px); margin: 0; letter-spacing: -0.02em; }
+  .overall { display: inline-flex; align-items: center; gap: .55em; padding: .45em 1em; border-radius: 999px;
+             background: var(--raised); border: 1px solid var(--line); font-weight: 700; font-size: 1.1em; }
+  .clock { margin-left: auto; text-align: right; color: var(--chalk-soft); }
+  .clock b { display: block; font-family: var(--display); font-weight: 500; color: var(--chalk); font-size: clamp(22px, 2vw, 42px); }
+
+  .light { width: .85em; height: .85em; border-radius: 50%; flex: none; background: var(--chalk-soft); box-shadow: 0 0 0 4px rgb(255 255 255 / .05); }
+  .ok .light, .light.ok { background: var(--up); box-shadow: 0 0 18px rgb(111 211 154 / .55); }
+  .warn .light, .light.warn, .stopped .light { background: var(--warn); box-shadow: 0 0 18px rgb(243 223 166 / .5); }
+  .error .light, .light.error { background: var(--down); box-shadow: 0 0 22px rgb(255 122 107 / .65); }
+  .running .light { background: var(--run); box-shadow: 0 0 18px rgb(143 184 255 / .6); animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+
+  #stale { display: none; background: var(--down); color: #1B1719; font-family: var(--display); font-weight: 700;
+           padding: .7em 1.1em; border-radius: 14px; font-size: 1.2em; }
+  body.is-stale #stale { display: block; }
+  body.is-stale main, body.is-stale .strip { opacity: .45; }
+
+  .strip { display: flex; flex-wrap: wrap; gap: .7em; }
+  .chip { display: inline-flex; align-items: center; gap: .55em; padding: .55em 1em; border-radius: 12px;
+          background: var(--raised); border: 1px solid var(--line); font-weight: 600; }
+  .chip small { color: var(--chalk-soft); font-weight: 500; }
+
+  main { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr)); gap: clamp(14px, 1.6vw, 28px); flex: 1; align-content: start; }
+  .card { background: var(--raised); border: 1px solid var(--line); border-radius: 22px; padding: clamp(18px, 1.8vw, 34px);
+          display: flex; flex-direction: column; gap: 1em; position: relative; overflow: hidden;
+          clip-path: polygon(0 0, calc(100% - 28px) 0, 100% 28px, 100% 100%, 0 100%); }
+  .card.urgent { border-color: var(--down); }
+  .top { display: flex; align-items: center; gap: .8em; }
+  .card h2 { font-family: var(--display); font-weight: 600; font-size: clamp(20px, 1.7vw, 36px); margin: 0; }
+  .state { margin-left: auto; color: var(--chalk-soft); font-weight: 700; }
+  .badge { font-size: .8em; padding: .2em .7em; border-radius: 999px; border: 1px solid var(--line); color: var(--chalk-soft); }
+  .badge.stale { background: var(--down); color: #1B1719; border-color: var(--down); font-weight: 800; }
+  .summary { font-size: 1.15em; margin: 0; min-height: 1.4em; }
+  .progress { display: none; gap: .5em; flex-direction: column; }
+  .running .progress { display: flex; }
+  .bar { height: 10px; border-radius: 99px; background: var(--line); overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--run); border-radius: 99px; transition: width .6s; }
+  .numbers { display: grid; grid-template-columns: repeat(4, 1fr); gap: .8em; }
+  .numbers div { background: rgb(0 0 0 / .18); border-radius: 14px; padding: .7em .8em; }
+  .numbers b { display: block; font-family: var(--display); font-weight: 600; font-size: clamp(22px, 2vw, 44px); line-height: 1.15; }
+  .numbers span { color: var(--chalk-soft); font-size: .85em; }
+  .spark { display: flex; align-items: end; gap: 1em; }
+  .spark svg { flex: 1; height: clamp(46px, 4.5vw, 90px); }
+  .spark small { color: var(--chalk-soft); max-width: 11em; }
+  .times { display: flex; justify-content: space-between; color: var(--chalk-soft); gap: 1em; flex-wrap: wrap; }
+
+  footer { flex: none; background: rgb(0 0 0 / .25); border: 1px solid var(--line); border-radius: 16px; padding: .7em 1em; overflow: hidden; }
+  .ticker { display: flex; gap: 3em; white-space: nowrap; width: max-content; animation: scroll 60s linear infinite;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--chalk-soft); font-size: .9em; }
+  .ticker span::before { content: "›  "; color: var(--volt); }
+  @keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @media (prefers-reduced-motion: reduce) {
+    .ticker { animation: none; flex-wrap: wrap; white-space: normal; width: auto; gap: .2em 2em; }
+    .running .light { animation: none; }
+  }
+  @media (max-width: 640px) { .numbers { grid-template-columns: repeat(2, 1fr); } .clock { margin-left: 0; text-align: left; } }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Buynder ops</h1>
+    <span class="overall" id="overall"><span class="light"></span><span id="overall-text">Loading…</span></span>
+    <div class="clock"><b id="clock">--:--</b><span id="updated">Waiting for data</span></div>
+  </header>
+  <div id="stale" role="alert">STALE: no fresh data from the dashboard server for <span id="stale-for">a while</span></div>
+  <section class="strip" id="health" aria-label="Health"></section>
+  <main id="agents" aria-live="polite"></main>
+  <footer aria-label="Recent log lines"><div class="ticker" id="ticker"></div></footer>
+
+<script>
+const REFRESH_MS = 10000, STALE_AFTER_MS = 35000
+let lastOk = 0
+const pageStart = Date.now()
+
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e }
+const fmt = n => n == null ? '–' : Number(n).toLocaleString()
+const STATE_TEXT = { ok: 'All good', warn: 'Needs a look', stopped: 'Stopped early', error: 'Problem', running: 'Running', never: 'Not run yet' }
+
+function ago(iso) {
+  if (!iso) return 'never'
+  const m = Math.round((Date.now() - new Date(iso)) / 60000)
+  if (m < 1) return 'just now'
+  if (m < 60) return `${m} min ago`
+  const h = Math.round(m / 60)
+  return h < 48 ? `${h} h ago` : `${Math.round(h / 24)} days ago`
+}
+function until(iso) {
+  if (!iso) return 'not scheduled'
+  const t = new Date(iso)
+  return t.toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })
+}
+function duration(s) {
+  if (s == null) return ''
+  return s < 90 ? `${Math.round(s)} s` : `${Math.round(s / 60)} min`
+}
+
+// A thin line chart: one point per day, last point marked
+function sparkline(values) {
+  const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg')
+  svg.setAttribute('viewBox', '0 0 100 30'); svg.setAttribute('preserveAspectRatio', 'none'); svg.setAttribute('aria-hidden', 'true')
+  const v = values.map((x, i) => [i, x]).filter(([, x]) => x != null)
+  if (v.length < 2) return svg
+  const ys = v.map(([, x]) => x), lo = Math.min(...ys), hi = Math.max(...ys), span = hi - lo || 1
+  const n = values.length - 1 || 1
+  const pts = v.map(([i, x]) => [i / n * 100, 26 - (x - lo) / span * 22])
+  const line = document.createElementNS(NS, 'polyline')
+  line.setAttribute('points', pts.map(p => p.join(',')).join(' '))
+  line.setAttribute('fill', 'none'); line.setAttribute('stroke', '#F2EEE8'); line.setAttribute('stroke-width', '1.6')
+  line.setAttribute('vector-effect', 'non-scaling-stroke'); line.setAttribute('stroke-linejoin', 'round')
+  svg.append(line)
+  // The chart is stretched to fit, so draw the end dot as a zero-length round-capped line (it doesn't stretch)
+  const dot = document.createElementNS(NS, 'line'), [x, y] = pts[pts.length - 1]
+  for (const [k, val] of [['x1', x], ['x2', x], ['y1', y], ['y2', y]]) dot.setAttribute(k, val)
+  dot.setAttribute('stroke', '#C6D85A'); dot.setAttribute('stroke-width', '9'); dot.setAttribute('stroke-linecap', 'round')
+  dot.setAttribute('vector-effect', 'non-scaling-stroke')
+  svg.append(dot)
+  return svg
+}
+
+function agentCard(a) {
+  const look = a.stale && a.state !== 'running' ? 'warn' : a.state
+  const card = el('article', `card ${look}${a.urgent ? ' urgent' : ''}`)
+  const top = el('div', 'top')
+  top.append(el('span', 'light'), el('h2', null, a.label))
+  const state = el('span', 'state', a.stale ? 'Late' : (STATE_TEXT[a.state] || a.state))
+  top.append(state)
+  if (a.stale) top.append(el('span', 'badge stale', 'STALE'))
+  if (a.dry_run) top.append(el('span', 'badge', 'test run'))
+  card.append(top)
+
+  const prog = el('div', 'progress')
+  prog.append(el('span', null, `Step ${a.step_no ?? '?'} of ${a.steps ?? '?'}: ${a.step || ''}`))
+  const bar = el('div', 'bar'), fill = el('i'); fill.style.width = `${a.steps ? (a.step_no / a.steps) * 100 : 0}%`
+  bar.append(fill); prog.append(bar); card.append(prog)
+
+  card.append(el('p', 'summary', a.summary || (a.state === 'never' ? 'Waiting for its first run.' : '')))
+
+  const nums = el('div', 'numbers')
+  for (const n of a.numbers) { const d = el('div'); d.append(el('b', 'num', fmt(n.value)), el('span', null, n.label)); nums.append(d) }
+  card.append(nums)
+
+  const sp = el('div', 'spark'); sp.append(sparkline(a.sparkline.values), el('small', null, a.sparkline.label)); card.append(sp)
+
+  const times = el('div', 'times')
+  times.append(el('span', null, `Last run ${ago(a.last_run)}${a.duration_s != null ? `, took ${duration(a.duration_s)}` : ''}`),
+               el('span', null, `Next: ${until(a.next_run)}`))
+  card.append(times)
+  return card
+}
+
+function render(s) {
+  const ov = document.getElementById('overall')
+  ov.className = `overall ${s.overall}`
+  document.getElementById('overall-text').textContent = s.urgent ? 'Urgent' : (STATE_TEXT[s.overall] || s.overall)
+
+  const h = document.getElementById('health'); h.replaceChildren()
+  for (const c of s.health.checks) {
+    const chip = el('span', 'chip'); chip.append(el('span', `light ${c.ok ? 'ok' : 'error'}`), el('span', null, c.name), el('small', null, c.ok ? 'up' : 'down')); h.append(chip)
+  }
+  const disk = el('span', 'chip num', `Disk ${s.health.disk_used_pct ?? '–'}% used`); h.append(disk)
+  const age = s.health.backup_age_hours
+  const bk = el('span', 'chip num'); bk.append(el('span', `light ${age == null || age > 36 ? 'error' : 'ok'}`),
+    el('span', null, age == null ? 'No backup found' : `Backup ${Math.round(age)} h old`), el('small', null, s.health.backup_size_mb ? `${s.health.backup_size_mb} MB` : ''))
+  h.append(bk)
+
+  document.getElementById('agents').replaceChildren(...s.agents.map(agentCard))
+
+  const t = document.getElementById('ticker'), lines = s.log.length ? s.log : ['No agent output yet']
+  t.replaceChildren(...[...lines, ...lines].map(l => el('span', null, l)))   // doubled so the scroll loops smoothly
+}
+
+async function refresh() {
+  try {
+    const r = await fetch('/api/status', { cache: 'no-store' })
+    if (!r.ok) throw new Error(r.status)
+    render(await r.json())
+    lastOk = Date.now()
+  } catch { /* keep the last good data on screen; the STALE banner explains */ }
+  tick()
+}
+
+function tick() {
+  const now = new Date()
+  document.getElementById('clock').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const since = lastOk || pageStart
+  const stale = Date.now() - since > STALE_AFTER_MS
+  document.body.classList.toggle('is-stale', stale)
+  document.getElementById('updated').textContent = lastOk ? `Updated ${ago(new Date(lastOk).toISOString())}` : 'Waiting for data'
+  if (stale) document.getElementById('stale-for').textContent = `${Math.round((Date.now() - since) / 1000)} seconds`
+}
+
+refresh()
+setInterval(refresh, REFRESH_MS)
+setInterval(tick, 1000)
+</script>
+</body>
+</html>

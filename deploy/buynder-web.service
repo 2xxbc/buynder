@@ -1,0 +1,25 @@
+# buynder-web.service: serve the live site with Caddy (replaces `vite preview`).
+# Installed to /etc/systemd/system/buynder-web.service. Steps: deploy/README.md
+
+[Unit]
+Description=Buynder frontend (Caddy serving frontend/dist)
+After=network.target
+
+[Service]
+Type=simple
+# Run as you, not root: Caddy can read the repo's dist/ folder, and port 5180 doesn't need root.
+User=youruser
+Group=youruser
+WorkingDirectory=/path/to/buynder
+# "run" keeps Caddy in the foreground so systemd can watch it; the config lives in the repo.
+ExecStart=/usr/bin/caddy run --config /path/to/buynder/deploy/Caddyfile --adapter caddyfile
+# Restart if it ever crashes, after 5 seconds (same as the old vite preview unit).
+Restart=always
+RestartSec=5
+# Small hardening: no gaining extra privileges, private /tmp, read-only view of system folders.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

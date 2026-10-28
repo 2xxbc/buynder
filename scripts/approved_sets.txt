@@ -1,0 +1,17 @@
+# Sets load_all_sets.py may ADD (only with: --apply --add scripts/approved_sets.txt). One slug per line; # starts a comment.
+# Decided 2026-10-25 after scripts/check_new_sets.py. A slug PokeTrace doesn't list stops the run before anything is written.
+
+me-30th-celebration-classic-collection   # ME: 30th Celebration Classic Collection, 59 cards (the home page's featured set).
+                                         # 18 name+number matches are Classic Collection reprints of old cards (0 ID matches), not duplicates.
+
+# Not yet: recheck weekly (check_new_sets.py) and uncomment once real cards show up.
+# me06-delta-reign                       # ME06: Delta Reign: only sealed products so far (booster box, ETB, blisters), no cards
+
+# Left out on purpose:
+#   duplicates of sets we track: ex-ruby-and-sapphire, ex-firered-and-leafgreen
+#   no cards returned: play-pokemon-prize-pack-series-nine (cardCount 109, but 0 cards on the first page)
+#   not Pokemon / not a set: the-hobbit, vendetta, the-worlds-strongest-warriors, reality-fracture,
+#       commander-reality-fracture, freedom-ascension, pokemon-bulk-card-lots
+#   Japan or Asia only: japan-leaders, japan-s, japan-si, japan-sm, japan-sv, japan-start,
+#       mp1-start-deck-100-corocoro-comic, start-deck-100-corocoro-comic, southeast-asia-exclusives
+#   unknown, 2-13 cards: beyond-the-brave, origins, magnificent-monsters

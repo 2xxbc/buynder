@@ -1,122 +1,145 @@
-import { useState, useEffect } from 'react';
-import { apiFetch } from '../config';
-function ShareManager() {
-  const [open, setOpen] = useState(false);
-  const [shares, setShares] = useState([]);
-  const [duration, setDuration] = useState('24h');
-  const [label, setLabel] = useState('');
-  const [creating, setCreating] = useState(false);
-  const [copied, setCopied] = useState('');
-  useEffect(() => {
-    if (open) loadShares();
-  }, [open]);
-  function loadShares() {
-    apiFetch('/my-shares').then(res => res.json()).then(data => setShares(data.shares || [])).catch(() => {});
+import { useState, useEffect, useRef } from 'react'
+import { apiFetch } from '../config'
+import Modal from './Modal'
+import { btn, field, label as labelClass } from './ui'
+import { copyText, shareUrl, timeLeft } from './share'
+
+// The share link in a read-only box (so it can be copied by hand) + a Copy button
+export function LinkCopy({ token }) {
+  const [status, setStatus] = useState('') // '' | 'copied' | 'manual'
+  const inputRef = useRef(null)
+  const url = shareUrl(token)
+
+  async function copy() {
+    const ok = await copyText(url)
+    if (!ok) inputRef.current?.select()
+    setStatus(ok ? 'copied' : 'manual')
+    setTimeout(() => setStatus(''), 2500)
   }
+
+  return (
+    <div>
+      <div className="flex gap-2">
+        <input ref={inputRef} type="text" readOnly value={url} aria-label="Share link"
+          onFocus={e => e.target.select()}
+          className={`${field} text-xs py-2 min-w-0`} />
+        <button type="button" onClick={copy}
+          className="shrink-0 rounded-full bg-chalk text-stage text-sm font-semibold px-4 hover:bg-chalk/85 transition-colors">
+          {status === 'copied' ? 'Copied' : 'Copy'}
+        </button>
+      </div>
+      <p aria-live="polite" className="text-xs text-chalk-soft mt-1 min-h-4">
+        {status === 'manual' && 'Copying isn’t available here. The link is selected, so press Ctrl+C (or ⌘C).'}
+      </p>
+    </div>
+  )
+}
+
+function ShareManager() {
+  const [open, setOpen] = useState(false)
+  const [shares, setShares] = useState([])
+  const [duration, setDuration] = useState('24h')
+  const [label, setLabel] = useState('')
+  const [creating, setCreating] = useState(false)
+
+  useEffect(() => {
+    if (open) loadShares()
+  }, [open])
+
+  function loadShares() {
+    apiFetch('/my-shares')
+      .then(res => res.json())
+      .then(data => setShares(data.shares || []))
+      .catch(() => {})
+  }
+
   function createShare() {
-    setCreating(true);
+    setCreating(true)
     apiFetch('/create-share', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        duration,
-        label
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ duration, label }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        setCreating(false)
+        if (data.success) {
+          setLabel('')
+          loadShares()
+        } else {
+          alert(data.error || 'Failed to create link')
+        }
       })
-    }).then(res => res.json()).then(data => {
-      setCreating(false);
-      if (data.success) {
-        setLabel('');
-        loadShares();
-      } else {
-        alert(data.error || 'Failed to create link');
-      }
-    }).catch(() => setCreating(false));
+      .catch(() => setCreating(false))
   }
+
   function revokeShare(id) {
-    if (!confirm('Turn off this share link? The person will lose access.')) return;
-    apiFetch(`/revoke-share/${id}`, {
-      method: 'POST'
-    }).then(() => loadShares());
+    if (!confirm('Turn off this share link? The person will lose access.')) return
+    apiFetch(`/revoke-share/${id}`, { method: 'POST' })
+      .then(() => loadShares())
   }
-  function shareUrl(token) {
-    return `${window.location.origin}/shared/${token}`;
-  }
-  function copyLink(token) {
-    navigator.clipboard.writeText(shareUrl(token));
-    setCopied(token);
-    setTimeout(() => setCopied(''), 2000);
-  }
-  function timeLeft(expiresAt) {
-    if (!expiresAt) return 'No expiry';
-    const ms = new Date(expiresAt).getTime() - Date.now();
-    if (ms <= 0) return 'Expired';
-    const hrs = Math.floor(ms / 3600000);
-    const mins = Math.floor(ms % 3600000 / 60000);
-    return `${hrs}h ${mins}m left`;
-  }
-  return <>
-      <button onClick={() => setOpen(true)} className="bg-gradient-to-r from-amber-500 to-orange-600 hover:opacity-90 text-white font-semibold px-4 py-2 rounded-lg transition-opacity">
+
+  const active = shares.filter(s => s.active)
+
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)} className={`${btn.secondary} py-2.5`}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4" aria-hidden="true">
+          <path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7" /><path d="M16 6l-4-4-4 4" /><path d="M12 2v13" />
+        </svg>
         Share
       </button>
 
-      {open && <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setOpen(false)}>
-          <div className="bg-slate-800 rounded-xl border border-slate-700 p-6 w-full max-w-lg" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold">Share your collection & trades</h3>
-              <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-white">✕</button>
-            </div>
-
-            <p className="text-sm text-slate-400 mb-4">
-              Create a view-only link. Anyone you send it to (who's logged in) can see your collection and trades until it expires.
-            </p>
-
-            
-            <div className="bg-slate-900 rounded-lg p-4 mb-5">
-              <div className="grid grid-cols-2 gap-3 mb-3">
-                <div>
-                  <label className="block text-xs text-slate-400 mb-1">Viewable for</label>
-                  <select value={duration} onChange={e => setDuration(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm">
-                    <option value="1h">1 hour</option>
-                    <option value="12h">12 hours</option>
-                    <option value="24h">24 hours</option>
-                    <option value="infinite">No expiry (until I turn it off)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-400 mb-1">Label (optional)</label>
-                  <input type="text" value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g. for Jake" className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm" />
-                </div>
+      {open && (
+        <Modal wide title="Share your collection and trades" onClose={() => setOpen(false)}
+          subtitle="Create a view-only link. Anyone logged in who opens it can see your collection and trades until it expires.">
+          {/* Create a new link */}
+          <div className="glass rounded-[20px] p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+              <div>
+                <label htmlFor="share-duration" className={labelClass}>Viewable for</label>
+                <select id="share-duration" value={duration} onChange={e => setDuration(e.target.value)} className={field}>
+                  <option value="1h">1 hour</option>
+                  <option value="12h">12 hours</option>
+                  <option value="24h">24 hours</option>
+                  <option value="infinite">No expiry (until I turn it off)</option>
+                </select>
               </div>
-              <button onClick={createShare} disabled={creating} className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-semibold py-2 rounded-lg transition-colors">
-                {creating ? 'Creating…' : 'Create link'}
-              </button>
-            </div>
-
-            
-            <div>
-              <p className="text-sm font-semibold text-slate-300 mb-2">Your active links</p>
-              {shares.filter(s => s.active).length === 0 && <p className="text-sm text-slate-500">No active links yet.</p>}
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {shares.filter(s => s.active).map(s => <div key={s.id} className="bg-slate-900 rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">{s.label || 'Untitled link'}</span>
-                      <span className="text-xs text-slate-400">{timeLeft(s.expires_at)}</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => copyLink(s.token)} className="flex-1 text-xs bg-slate-700 hover:bg-slate-600 text-white py-1.5 rounded transition-colors">
-                        {copied === s.token ? 'Copied!' : 'Copy link'}
-                      </button>
-                      <button onClick={() => revokeShare(s.id)} className="text-xs bg-red-500/20 hover:bg-red-500/40 text-red-300 px-3 py-1.5 rounded transition-colors">
-                        Turn off
-                      </button>
-                    </div>
-                  </div>)}
+              <div>
+                <label htmlFor="share-label" className={labelClass}>Label (optional)</label>
+                <input id="share-label" type="text" value={label} onChange={e => setLabel(e.target.value)}
+                  placeholder="For Jake" className={field} />
               </div>
             </div>
+            <button type="button" onClick={createShare} disabled={creating} className={`${btn.primary} w-full`}>
+              {creating ? 'Creating…' : 'Create link'}
+            </button>
           </div>
-        </div>}
-    </>;
+
+          {/* Existing links */}
+          <h3 className="font-semibold mt-6 mb-2">Your active links</h3>
+          {active.length === 0 ? (
+            <p className="text-sm text-chalk-soft">No active links yet.</p>
+          ) : (
+            <ul className="space-y-3">
+              {active.map(s => (
+                <li key={s.id} className="rounded-[20px] border border-chalk/10 p-4">
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <span className="text-sm font-semibold truncate">{s.label || 'Untitled link'}</span>
+                    <span className="text-xs text-chalk-soft shrink-0">{timeLeft(s.expires_at)}</span>
+                  </div>
+                  <LinkCopy token={s.token} />
+                  <button type="button" onClick={() => revokeShare(s.id)} className={`${btn.danger} mt-1`}>
+                    Turn off
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Modal>
+      )}
+    </>
+  )
 }
-export default ShareManager;
+
+export default ShareManager
